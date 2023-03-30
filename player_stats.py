@@ -3,6 +3,7 @@ import requests
 from ratelimit import limits, sleep_and_retry
 
 MINUTE = 60
+CALLS = 450 #use 30 if using the Basic (free) API plan
 
 headers = {
     'x-rapidapi-host': "api-football-v1.p.rapidapi.com",
@@ -40,7 +41,7 @@ def get_seasons(start: int = None, end: int = None) -> list[int]:
 #           {"team2": {...}, "venue2": {...}},
 #           ...]
 @sleep_and_retry
-@limits(calls=30, period=MINUTE)
+@limits(calls=CALLS, period=MINUTE)
 def get_teams(league_ids: list[str], season: str):
     teams = []
 
@@ -79,9 +80,17 @@ def get_players(league_ids: list[str], seasons: list[str]) -> list:
 
     for league_id in league_ids:
         for season in seasons:
-            print("League:", league_id, "Season:", season)
-            get_players_helper(league_id, season, players, 1)
-
+            print("Starting - League:", league_id, "Season:", season)
+            print()
+            try:
+                get_players_helper(league_id, season, players, 1)
+            except Exception as e:
+                print(e)
+            print()
+            
+            with open("players.json", "w") as out:
+                out.write(json.dumps(players))
+        
     return players
 
 
@@ -94,9 +103,9 @@ def get_players(league_ids: list[str], seasons: list[str]) -> list:
 # Output: None; updates "players" parameter with all players in the
 # league/season.
 @sleep_and_retry
-@limits(calls=30, period=MINUTE)
+@limits(calls=CALLS, period=MINUTE)
 def get_players_helper(league_id: str, season: str, players: list = [],
-                       page: int = 1, verbose: str = False):
+                       page: int = 1, verbose: str = True):
     payload = {
         "league": league_id,
         "season": season,
@@ -107,7 +116,7 @@ def get_players_helper(league_id: str, season: str, players: list = [],
     r = requests.get("https://api-football-v1.p.rapidapi.com/v3/players",
                      headers=headers,
                      params=payload)
-
+    
     # throw error if query not successful
     if r.status_code != 200:
         raise Exception('API response: {}'.format(r.status_code))
