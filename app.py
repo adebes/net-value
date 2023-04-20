@@ -194,8 +194,19 @@ tab2_layout = dbc.Container([
 ], fluid=True)
 
 # callbacks for tab2
-# callback for goalkeeper circle
+# callback for season dropdown, shows only available seasons for selected league
 
+
+@app.callback(
+    Output('season-tab2', 'options'),
+    Input('league-tab2', 'value')
+)
+def set_season_options(selected_league):
+    df_filtered = player_data[player_data['league_name'] == selected_league]
+    return [{'label': str(i), 'value': i} for i in df_filtered['league_season'].unique()]
+
+
+# callback for goalkeeper circle
 
 @app.callback(
     Output('defender-dropdown', 'value'),
