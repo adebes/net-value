@@ -6,6 +6,10 @@ from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import plotly.express as px
 import pandas as pd
+from dash import dash_table
+import copy
+import numpy as np
+import plotly.figure_factory as ff
 
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -64,6 +68,13 @@ tab1_layout = dbc.Container([
     ])
 ])
 
+# Define data for tab2
+# Create an empty table with the required columns
+table_columns = [{'name': 'Performance', 'id': 'Performance'},
+                 {'name': 'Selected Player', 'id': 'Selected Player'},
+                 {'name': 'Alternate Player 1', 'id': 'Alternate Player 1'},
+                 {'name': 'Alternate Player 2', 'id': 'Alternate Player 2'}]
+table_data = []
 
 # Define tab2 layout
 tab2_layout = dbc.Container([
@@ -190,13 +201,215 @@ tab2_layout = dbc.Container([
             )
         ], width=9, style={'height': '400px'}),
     ], style={'height': '400px'
-              })
+              }
+    ),
+    dbc.Row([
+    dbc.Row([
+        dbc.Col([
+            html.Div([
+                html.Label('Player', style={'color': 'Black', 'font-weight': 'bold'}),
+                dcc.Dropdown(id='current-dropdown',
+                                # options from callback
+                                options=[], #multi=True,
+                                searchable=True,
+                                clearable=True,
+                                placeholder='Selected Player',
+                                style={'width': '100%'})
+            ], style={'width': '25%', 'display': 'inline-block'}),
+            html.Div([
+                html.Label('Alternative 1', style={'color': 'Black', 'font-weight': 'bold'}),
+                dcc.Dropdown(id='suggestion1-dropdown',
+                                options=[], multi=True,
+                                searchable=True,  # adds auto fill search option
+                                clearable=True,  # adds clear button to deselect players
+                                placeholder='Similar Player 1',
+                                style={'width': '100%'})
+            ], style={'width': '25%', 'display': 'inline-block'}),
+            html.Div([
+                html.Label('Alternative 2', style={'color': 'Black', 'font-weight': 'bold'}),
+                dcc.Dropdown(id='suggestion2-dropdown',
+                                options=[], multi=True,
+                                searchable=True,
+                                clearable=True,
+                                placeholder='Similar Player 2',
+                                style={'width': '100%'})
+            ], style={'width': '25%', 'display': 'inline-block'})
+            #html.Div([
+            #    dash_table.DataTable(id='stats-table', columns=table_columns)#, data=table_data)
+            #], style={'width': '25%', 'display': 'inline-block'}
+            #)
+        ])
+        #dbc.Col([
+        #    dcc.Graph(figure=radial_chart_1)
+        #])#,width=6)
+    ], style={
+            'height': '50px',
+            'position': 'relative',
+            'display': 'flex',
+            'margin-top': '+20%',
+            'margin-left': '+0%'
+            },
+    )
+    ], style={'height':'50px','align-items': 'center'}),
+    dbc.Row([
+        #dbc.Col(dcc.Graph(id='stats-table'))
+        html.Div([
+                dash_table.DataTable(id='stats-table', columns=table_columns, data=[]) #table_data)
+            ], style={'width': '25%', 'display': 'inline-block'}
+        )    
+    ],style={
+            'height': '100px',
+            'position': 'relative',            
+            'display': 'flex',
+            'margin-top': '+22%'
+            },
+    )
 ], fluid=True)
 
 # callbacks for tab2
+
+# callback to update option for current player
+@app.callback(
+    Output('current-dropdown', 'options'),
+    [Input('goalkeeper-dropdown', 'value'),
+     Input('defender-dropdown', 'value'),
+     Input('midfielder-dropdown', 'value'),
+     Input('attacker-dropdown', 'value')]
+)
+def update_selected_dropdown(gk = None,defend = None,midf = None,attack = None):
+    options = []
+    if(gk is not None and len(gk)>0):
+        options.append({'label': str(gk), 'value': str(gk)})
+    if(defend is not None and len(defend)>0):
+        for i in range(len(defend)):
+            options.append({'label': str(defend[i]), 'value': str(defend[i])})
+    if(midf is not None and len(midf)>0):
+        for i in range(len(midf)):
+            options.append({'label': str(midf[i]), 'value': str(midf[i])})
+    if(attack is not None and len(attack)>0):
+        for i in range(len(attack)):
+            options.append({'label': str(attack[i]), 'value': str(attack[i])})
+    return options
+
+# callback to update option for current player
+@app.callback(
+    Output('suggestion1-dropdown', 'options'),
+    [Input('current-dropdown', 'value'),
+     Input('league-tab2', 'value'),
+     Input('season-tab2', 'value'),
+     Input('suggestion1-dropdown', 'value'),
+     Input('suggestion2-dropdown', 'value')]
+)
+def update_suggest_dropdown(main_player,league,season,select1=None,select2=None):
+    if main_player:
+        filter_data = player_data[(player_data['league_name'] == league) &
+                                (player_data['league_season'] == season)]
+        reqpos = filter_data[filter_data['player_name']==main_player]
+        reqpos = reqpos['games_position'].iloc[0]
+        reqdata = filter_data[player_data['games_position'] == reqpos]
+        reqdata = reqdata['player_name'].unique()
+        remove_list = [main_player, select1, select2]
+        req_options = [{'label': str(i), 'value': str(i)} for i in reqdata if str(i) not in remove_list]
+
+        return req_options#, req_options
+    return []
+
+# callback to update option for current player
+@app.callback(
+    Output('suggestion2-dropdown', 'options'),
+    [Input('current-dropdown', 'value'),
+     Input('league-tab2', 'value'),
+     Input('season-tab2', 'value'),
+     Input('suggestion1-dropdown', 'value'),
+     Input('suggestion2-dropdown', 'value')]
+)
+def update_suggest_dropdown(main_player,league,season,select1=None,select2=None):
+    if main_player:
+        filter_data = player_data[(player_data['league_name'] == league) &
+                                (player_data['league_season'] == season)]
+        reqpos = filter_data[filter_data['player_name']==main_player]
+        reqpos = reqpos['games_position'].iloc[0]
+        reqdata = filter_data[player_data['games_position'] == reqpos]
+        reqdata = reqdata['player_name'].unique()
+        remove_list = [main_player, select1, select2]
+        req_options = [{'label': str(i), 'value': str(i)} for i in reqdata if str(i) not in remove_list]
+        """
+        reqdict = {'label': str(main_player), 'value': str(main_player)}
+        index = req_options.index(reqdict)
+        _ = req_options.pop(index)
+        """
+        return req_options #, req_options
+    return []
+
+# Stats table callback
+@app.callback(
+    Output('stats-table', 'data'),
+    [Input('current-dropdown', 'value'),
+     Input('league-tab2', 'value'),
+     Input('season-tab2', 'value'),
+     Input('suggestion1-dropdown', 'value'),
+     Input('suggestion2-dropdown', 'value')]
+)
+def update_table(player1, league, season, player2=None, player3=None):
+    feats = ['passes_90min_I', 'saves_90min_I',
+       'shots_90mins', 'shots_on_90mins', 'goals_total_90mins',
+       'goals_conceded_90mins', 'goals_assists_90mins', 'goals_saves_90mins',
+       'passes_total_90mins', 'passes_key_90mins', 'passes_accuracy_90mins',
+       'tackles_total_90mins', 'tackles_blocks_90mins',
+       'tackles_interceptions_90mins', 'duels_total_90mins',
+       'duels_won_90mins', 'dribbles_attempts_90mins',
+       'dribbles_success_90mins', 'fouls_drawn_90mins',
+       'fouls_committed_90mins', 'cards_yellow_90mins',
+       'cards_yellowred_90mins', 'cards_red_90mins', 'penalty_won_90mins',
+       'penalty_commited_90mins', 'penalty_scored_90mins',
+       'penalty_missed_90mins', 'penalty_saved_90mins']
+    filter_data = player_data[(player_data['league_name'] == league) &
+                            (player_data['league_season'] == season)]    
+    if player1:
+        p1data = filter_data[filter_data['player_name'] == str(player1)]
+        p1data = p1data[feats]
+        if player2:
+            p2data = filter_data[filter_data['player_name'] == str(player2)]
+            p2data = p2data[feats]
+        else:
+            p2data = copy.deepcopy(p1data)
+            p2data = np.nan*p2data
+        if player3:
+            p3data = filter_data[filter_data['player_name'] == str(player3)]
+            p3data = p3data[feats]
+        else:
+            p3data = copy.deepcopy(p1data)
+            p3data = np.nan*p3data
+        feat_cols = [col for col in p1data.keys()]
+        vals1 = [i for i  in p1data.values]
+        vals2 = [i for i  in p2data.values]
+        vals3 = [i for i  in p3data.values]
+        #data = [{'Performance':feat_cols[i],'Selected Player':vals1[i], 'Alternate Player 1':vals2[i], 'Alternate Player 2':vals3[i]} for i in range(len(p1data))]
+        #data = [{'Performance':feat_cols,'Selected Player':vals1, 'Alternate Player 1':vals2, 'Alternate Player 2':vals3}]
+        data_mat = []
+        data_mat.append(['Performance', 'Selected Player', 'Alternative 1', 'Alternative 2'])
+        for i in range(len(feat_cols)):
+            row = [feat_cols[i],vals1[i],vals2[i],vals3[i]]
+            data_mat.append(row)
+        fig = ff.create_table(data_mat)
+        return data_mat #go.Figure(data=data)
+
+# callback for suggestion selection limits
+@app.callback(
+    [Output('suggestion1-dropdown', 'value'),
+     Output('suggestion2-dropdown', 'value')],
+    [Input('suggestion1-dropdown', 'value'),
+     Input('suggestion2-dropdown', 'value')]
+)
+def limit_selections(values1,values2):
+    if values1 is not None and len(values1) > 1:
+        values1 = values1[0]
+    if values2 is not None and len(values2) > 1:
+        values2 = values2[0]
+    return values1,values2
+
+
 # callback for season dropdown, shows only available seasons for selected league
-
-
 @app.callback(
     Output('season-tab2', 'options'),
     Input('league-tab2', 'value')
