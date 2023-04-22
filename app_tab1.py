@@ -11,8 +11,8 @@ import numpy as np
 
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-scatter_plot_width = 800
-scatter_plot_length = 600
+scatter_plot_width = 1000
+scatter_plot_length = 650
 
 
 centroids_data = pd.read_csv('dashboard/centroids.csv')[['passing',
@@ -90,7 +90,15 @@ for cluster, label in cluster_labels.items():
     scatter_plot.add_trace(go.Scatter(x=filtered_df['x'], y=filtered_df['y'], mode='markers', marker=dict(color=color_codes[label]), name=label))
 
 # Update the layout if needed
-scatter_plot.update_layout(title='Player Demographics', width=scatter_plot_width, height=scatter_plot_length)
+scatter_plot.update_layout(width=scatter_plot_width, height=scatter_plot_length,
+                           yaxis=dict(range=[ymin - 20, ymax + 20]),xaxis=dict(range=[xmin -20, xmax + 20]),
+                           legend=dict(
+        orientation="h",  # Set the legend orientation to horizontal
+        xanchor="center",  # Anchor the legend horizontally to the center
+        yanchor="top",     # Anchor the legend vertically to the top
+        x=0.5,             # Position the legend in the center of the x-axis
+        y=1.1,             # Position the legend slightly above the plot area
+    ))
 
 # Create static radial charts
 theta_metrics = ['Passing','Defending', 'Fouling', 'Dribbling', 'Shooting', 'Goalkeeping']
@@ -100,9 +108,14 @@ for grouping in grouped_playstyles:
         radial_chart_1 = go.Figure()
         centroid_values = centroids_data.iloc[line[0]].values
         centroid_values = np.clip(centroid_values, 0, 0.5)
+
+        hover_text = [f"{theta_metrics[i]}: {round(centroid_values[i], 3)}" for i in range(len(theta_metrics))]
         radial_chart_1.add_trace(go.Scatterpolar(r=centroid_values, 
                                                 theta=theta_metrics, name=line[1],fill='toself',
-                                             line=dict(color=color_codes[line[1]])))
+                                             line=dict(color=color_codes[line[1]]),
+                                             hovertemplate=hover_text,
+                                            customdata=list(range(len(theta_metrics))),
+                                            hoverlabel=dict(namelength=-1)))
 
         
         radial_chart_1.update_layout(
@@ -126,46 +139,114 @@ for grouping in grouped_playstyles:
         radial_charts.append(radial_chart_1)
 
 # Define the first tab layout
-tab1_layout = dbc.Container([
-    dbc.Row([
-        dbc.Col([
-            html.Label('League'),
-            dcc.Dropdown(id='leagues', options=league_options, multi = True)]),
-        dbc.Col([html.Label('Team'),
-            dcc.Dropdown(id='teams', options=season_options, multi= True)]),
-        dbc.Col([html.Label('Season'),
-            dcc.Dropdown(id='seasons', options=season_options, multi= True)]),
-        dbc.Col([html.Label('Players'),
-            dcc.Dropdown(id='players', options=player_options, multi=True)])
-        
-        ]),
-    
-    dbc.Row([
-        dbc.Col([
-                dcc.Graph(id='dynamic-radial-chart')
-            ], width=3),
-        
-        dbc.Col([
-                dcc.Graph(id='scatter-plot', figure=scatter_plot)
-            ], width=9),
-        ]),
-
-    dbc.Row([
-        
-        dbc.Col([dcc.Graph(figure=radial_charts[0])], width=3),
-        dbc.Col([dcc.Graph(figure=radial_charts[1])], width=3),
-        dbc.Col([dcc.Graph(figure=radial_charts[2])], width=3),
-        dbc.Col([dcc.Graph(figure=radial_charts[3])], width=3),
-    ],style={"margin-bottom": "0px"}),
-
-    dbc.Row([
-        
-        dbc.Col([dcc.Graph(figure=radial_charts[4])], width=3),
-        dbc.Col([dcc.Graph(figure=radial_charts[5])], width=3),
-        dbc.Col([dcc.Graph(figure=radial_charts[6])], width=3),
-        dbc.Col([dcc.Graph(figure=radial_charts[7])], width=3),
-    ], style={"margin-top": "0px"})
-])
+tab1_layout = dbc.Container(
+    [
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.Label("League"),
+                        dcc.Dropdown(
+                            id="leagues", options=league_options, multi=True
+                        ),
+                    ],
+                    width=3,
+                ),
+                dbc.Col(
+                    [
+                        html.Label("Team"),
+                        dcc.Dropdown(
+                            id="teams", options=season_options, multi=True
+                        ),
+                    ],
+                    width=3,
+                ),
+                dbc.Col(
+                    [
+                        html.Label("Season"),
+                        dcc.Dropdown(
+                            id="seasons", options=season_options, multi=True
+                        ),
+                    ],
+                    width=3,
+                ),
+                dbc.Col(
+                    [
+                        html.Label("Players"),
+                        dcc.Dropdown(
+                            id="players", options=player_options, multi=True
+                        ),
+                    ],
+                    width=3,
+                ),
+            ],
+            className="mb-4",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [dcc.Graph(id="dynamic-radial-chart")], width=4, className="mb-4"
+                ),
+                dbc.Col(
+                    [
+                        dcc.Graph(id="scatter-plot", figure=scatter_plot)
+                    ],
+                    width=8,
+                    className="mb-4",
+                ),
+            ],
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[0])],
+                    width=3,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[1])],
+                    width=3,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[2])],
+                    width=3,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[3])],
+                    width=3,
+                    className="mb-4",
+                ),
+            ],
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[4])],
+                    width=3,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[5])],
+                    width=3,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[6])],
+                    width=3,
+                    className="mb-4",
+                ),
+                dbc.Col(
+                    [dcc.Graph(figure=radial_charts[7])],
+                    width=3,
+                    className="mb-4",
+                ),
+            ],
+        ),
+    ],
+    fluid=True,
+)
 
 # Define the modal window content
 modal = dbc.Modal(
@@ -184,30 +265,74 @@ modal = dbc.Modal(
 )
 
 # Define the app layout
-app.layout = dbc.Container([
-    # Define the info pop-up
-    html.Div(
-        [
-            dbc.Button(
-            [
-                
-                html.I(className="fas fa-info mr-2"),  # Add an "i" icon using Font Awesome
-                "Read Me",
-            ],
-            id="open",
-            className="mb-3 btn-lg d-flex mx-auto mt-4",
-        ),
-            modal,
-        ],
-        className="d-flex justify-content-center",
-    ),
-    html.H3("Net Value: Combining AI and Soccer", className="text-center"),
+app.layout = dbc.Container(
+    [
+        # Define the info pop-up
+        html.H3("Net Value: Combining AI and Soccer", className="text-center"),
 
-    dbc.Tabs([
-        dbc.Tab(tab1_layout, label='Tab 1'),
-        dbc.Tab(label='Tab 2')
-    ])
-])
+        html.Div(
+            [
+                dcc.Location(id="url", refresh=False),
+
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
+                                dbc.Tabs(
+                                    [
+                                        dbc.Tab(
+                                            label="Tab 1",
+                                            label_style={
+                                                "color": "#00AEF9",
+                                                "fontSize": "1rem",
+                                            },
+                                            tab_id="tab-1",
+                                        ),
+                                        dbc.Tab(
+                                            label="Tab 2",
+                                            label_style={
+                                                "color": "#00AEF9",
+                                                "fontSize": "1rem",
+                                            },
+                                            tab_id="tab-2",
+                                        ),
+                                    ],
+                                    id="tabs",
+                                    active_tab="tab-1",
+                                    className="mb-3",
+                                ),
+                            ],
+                            width=10,  # Adjust the width
+                            className="d-flex align-items-center",  # Align the tabs vertically
+                        ),
+                        dbc.Col(
+                            [
+                                dbc.Button(
+                                    "Read Me",
+                                    id="open",
+                                    className="mb-3 btn-sm float-right",
+                                ),
+                                modal,
+                            ],
+                            width=2,  # Adjust the width
+                            className="d-flex align-items-center",  # Align the button vertically
+                        ),
+                    ]
+                ),
+                html.Div(id="tab-content"),
+            ],
+            className="mb-4",
+        ),
+    ],
+    fluid=True,
+)
+
+@app.callback(Output("tab-content", "children"), [Input("tabs", "active_tab")])
+def display_tab_content(active_tab):
+    if active_tab == "tab-1":
+        return tab1_layout
+    else:
+        return html.Div("Tab 2 content goes here")
 
 # Toggle the modal window
 @app.callback(
@@ -219,7 +344,6 @@ def toggle_modal(n1, n2, is_open):
     if n1 or n2:
         return not is_open
     return is_open
-
 
 
 # # Define a callback to update the dynamic radial chart header based on data filters
@@ -305,7 +429,13 @@ def update_radial_chart(league, team, season, player):
     r = radial_data.values
     r = np.clip(r, None, 0.5)
     theta = theta_metrics
-    dynamic_chart = go.Figure(go.Scatterpolar(r=r, theta=theta, fill='toself'))
+    hover_text = [f"{theta[i]}: {round(r[i], 3)}" for i in range(len(theta))]
+
+
+    dynamic_chart = go.Figure(go.Scatterpolar(r=r, theta=theta, fill='toself', 
+                                              hovertemplate=hover_text,
+                                                customdata=list(range(len(theta_metrics))),
+                                                hoverlabel=dict(namelength=-1)))
 
     dynamic_chart.update_layout(
             showlegend=False,
@@ -361,21 +491,26 @@ def update_scatter_plot(league, team, season, player):
         trace_df = selected_data[selected_data['cluster'] == cluster].sample(frac=ratio)
         trace_df['label'] = trace_df['cluster'].apply(lambda x : cluster_labels[x])
         scatter_plot.add_trace(go.Scatter(x=trace_df['x'], y=trace_df['y'], 
-                                          customdata=trace_df[['league_season', 'league_name', 'player_name', 'label', 'team_name']],
+                                          customdata=trace_df[['league_season', 'league_name', 'player_name', 'games_position', 'team_name', 'league_country']],
                                         mode='markers',
                                         hovertemplate=(
-                                            "<b>%{customdata[2]}</b><br>"  # Player name
-                                            "League Season: %{customdata[0]}<br>"  # League season
-                                            "League Name: %{customdata[1]}<br>"  # League name
-                                            "Team Name: %{customdata[4]}<br>"  # Team name
-                                            "Play Style: %{customdata[3]}"  # Cluster
+                                            "<b>%{customdata[2]}</b> (%{customdata[3]})<br>"  # Player name
+                                            "%{customdata[4]} (%{customdata[0]})<br>"  # League season
+                                            "%{customdata[1]} - %{customdata[5]}<br>"  # League name
                                             "<extra></extra>"
                                         ),
                                         marker=dict(color=color_codes[label]), name=label))
 
-    scatter_plot.update_layout(title='Player Demographics and Performance', width=scatter_plot_width, height=scatter_plot_length,
-                                yaxis=dict(range=[ymin - 20, ymax + 20]),xaxis=dict(range=[xmin -20, xmax + 20]))
+    scatter_plot.update_layout(width=scatter_plot_width, height=scatter_plot_length,
+                                yaxis=dict(range=[ymin - 20, ymax + 20]),xaxis=dict(range=[xmin -20, xmax + 20]),
+                                legend=dict(
+        orientation="h",  # Set the legend orientation to horizontal
+        xanchor="center",  # Anchor the legend horizontally to the center
+        yanchor="top",     # Anchor the legend vertically to the top
+        x=0.5,             # Position the legend in the center of the x-axis
+        y=1.1,             # Position the legend slightly above the plot area
+    ))
 
     return scatter_plot
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
