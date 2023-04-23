@@ -40,6 +40,18 @@ feats = ['passing', 'defending', 'fouling',
          'dribbling', 'shooting', 'goalkeeping']
 theta_metrics = ['Passing', 'Defending', 'Fouling',
                     'Dribbling', 'Shooting', 'Goalkeeping']
+feats_table = ['passes_90min_I', 'saves_90min_I',
+    'shots_90mins', 'shots_on_90mins', 'goals_total_90mins',
+    'goals_conceded_90mins', 'goals_assists_90mins', 'goals_saves_90mins',
+    'passes_total_90mins', 'passes_key_90mins', 'passes_accuracy_90mins',
+    'tackles_total_90mins', 'tackles_blocks_90mins',
+    'tackles_interceptions_90mins', 'duels_total_90mins',
+    'duels_won_90mins', 'dribbles_attempts_90mins',
+    'dribbles_success_90mins', 'fouls_drawn_90mins',
+    'fouls_committed_90mins', 'cards_yellow_90mins',
+    'cards_yellowred_90mins', 'cards_red_90mins', 'penalty_won_90mins',
+    'penalty_commited_90mins', 'penalty_scored_90mins',
+    'penalty_missed_90mins', 'penalty_saved_90mins']
 
 centroids_data = pd.read_csv('dashboard/centroids.csv')[['passing','defending', 'fouling', 'dribbling', 'shooting', 'goalkeeping']]
 player_data = pd.read_csv("dashboard/output.csv")
@@ -586,7 +598,7 @@ tab2_layout = dbc.Container([
                 ], style={'width': '25%', 'display': 'inline-block'}
                 )
             ], style={
-                'width': '85%',
+                #'width': '85%',
                 'position': 'relative',
                 'display': 'flex',
                 'margin-top': '+02%',
@@ -600,9 +612,9 @@ tab2_layout = dbc.Container([
                 html.Div(id='compare-radial', className='text-center'),
                 dcc.Graph(id='compare-radial-chart',style={'display': 'none'})
             ])
-        ], width=6, style={
-            'margin-top': '-20%',
-            'margin-left': '+55%'
+        ], width=5, style={
+            'margin-top': '-65%',
+            'margin-left': '+60%'
         })
     ])
 ], fluid=True)
@@ -913,6 +925,7 @@ player_positions = ['Goalkeeper', 'Defender-1', 'Defender-2', 'Defender-3', 'Def
     Input('season-tab2', 'value'),
     Input('player-position-tab2', 'value')
 )
+@timing_decorator
 def set_player_options(selected_league, selected_season, selected_position):
     if selected_position is not None:
         if selected_position == 'Goalkeeper':
@@ -933,6 +946,7 @@ def set_player_options(selected_league, selected_season, selected_position):
     Output('season-tab2', 'options'),
     Input('league-tab2', 'value')
 )
+@timing_decorator
 def set_season_options(selected_league):
     df_filtered = player_data[player_data['league_id'] == selected_league]
     return [{'label': str(i), 'value': i} for i in df_filtered['league_season'].unique()]
@@ -1008,6 +1022,7 @@ goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3,
     State('player-select-tab2', 'value'),
     State('selected-players', 'children'),
 )
+@timing_decorator
 def update_selected_players(n_clicks_add, n_clicks_clear, n_clicks_remove,
                             position, league, season, player, selected_players_divs):
     ctx = dash.callback_context
@@ -1123,6 +1138,7 @@ def update_selected_players(n_clicks_add, n_clicks_clear, n_clicks_remove,
      Input('suggestion1-dropdown', 'value'),
      Input('suggestion2-dropdown', 'value')]
 )
+@timing_decorator
 def update_radial_chart(player1, playingxi, player2=None, player3=None):
 
     layout = go.Layout(margin=go.layout.Margin(
@@ -1186,7 +1202,7 @@ def update_radial_chart(player1, playingxi, player2=None, player3=None):
             yanchor='top',
             y=1.25,
             xanchor='left',
-            x=0.05
+            x=0.15
         )
         )
         #print(fig.layout())
@@ -1201,6 +1217,7 @@ def update_radial_chart(player1, playingxi, player2=None, player3=None):
     Output('current-dropdown', 'options'),
     Input('player-store', 'data')
 )
+@timing_decorator
 def update_selected_dropdown(playingxi):
     options = []
     if playingxi:
@@ -1218,6 +1235,7 @@ def update_selected_dropdown(playingxi):
      Input('suggestion1-dropdown', 'value'),
      Input('suggestion2-dropdown', 'value')]
 )
+@timing_decorator
 def update_suggest_dropdown1(main_player, playingxi, select1=None, select2=None):
     if main_player:
         for p in playingxi:
@@ -1272,6 +1290,7 @@ def update_suggest_dropdown1(main_player, playingxi, select1=None, select2=None)
      Input('suggestion1-dropdown', 'value'),
      Input('suggestion2-dropdown', 'value')]
 )
+@timing_decorator
 def update_suggest_dropdown2(main_player, playingxi, select1=None, select2=None):
     if main_player:
         for p in playingxi:
@@ -1342,6 +1361,7 @@ def limit_selections(values1, values2):
      Input('suggestion1-dropdown', 'value'),
      Input('suggestion2-dropdown', 'value')]
 )
+@timing_decorator
 def update_table(player1, playingxi, player2=None, player3=None):
     if player1:
         for p in playingxi:
@@ -1352,7 +1372,7 @@ def update_table(player1, playingxi, player2=None, player3=None):
         filter_data = player_data[(player_data['league_id'] == league) &
                                   (player_data['league_season'] == season)]
         p1data = filter_data[filter_data['player_name'] == str(player1)]
-        p1data = p1data[feats].iloc[0]
+        p1data = p1data[feats_table].iloc[0]
         feat_cols, vals1 = [], []
         feat_cols = [col for col in p1data.keys()]
         vals1 = [i for i in p1data.values]
