@@ -33,17 +33,18 @@ table_columns = [{'name': 'Selected Player', 'id': 'Selected Player',
                  {'name': 'Alternate Player 1', 'id': 'Alternate Player 1',
                      'presentation': 'dropdown'},
                  {'name': 'Alternate Player 2', 'id': 'Alternate Player 2', 'presentation': 'dropdown'},
-                 {'name': 'Performance', 'id': 'Performance'}]
+                 {'name': 'Performance (per 90 mins)', 'id': 'Performance (per 90 mins)'}]
 #table_columns = []
 table_data = []
 feats = ['passing', 'defending', 'fouling',
          'dribbling', 'shooting', 'goalkeeping']
 theta_metrics = ['Passing', 'Defending', 'Fouling',
                     'Dribbling', 'Shooting', 'Goalkeeping']
+"""
 feats_table = ['passes_90min_I', 'saves_90min_I',
     'shots_90mins', 'shots_on_90mins', 'goals_total_90mins',
-    'goals_conceded_90mins', 'goals_assists_90mins', 'goals_saves_90mins',
-    'passes_total_90mins', 'passes_key_90mins', 'passes_accuracy_90mins',
+    'goals_conceded_90mins', 'goals_assists_90mins',
+    'passes_key_90mins', 'passes_accuracy_90mins',
     'tackles_total_90mins', 'tackles_blocks_90mins',
     'tackles_interceptions_90mins', 'duels_total_90mins',
     'duels_won_90mins', 'dribbles_attempts_90mins',
@@ -52,6 +53,35 @@ feats_table = ['passes_90min_I', 'saves_90min_I',
     'cards_yellowred_90mins', 'cards_red_90mins', 'penalty_won_90mins',
     'penalty_commited_90mins', 'penalty_scored_90mins',
     'penalty_missed_90mins', 'penalty_saved_90mins']
+"""
+feats_table_dict = {
+    'passes_90min_I': 'Total passes',
+    'passes_accuracy_90mins': 'Pass accuracy',
+    'passes_key_90mins': 'Key passes',
+    'goals_assists_90mins': 'Assists',
+    'shots_90mins': 'Total shots',
+    'shots_on_90mins': 'Shots on target',
+    'goals_total_90mins': 'Total goals',
+    'penalty_scored_90mins': 'Penalties scored',
+    'penalty_missed_90mins': 'Penalties missed',
+    'tackles_total_90mins': 'Total tackles',
+    'tackles_blocks_90mins': 'Blocks',
+    'tackles_interceptions_90mins': 'Interceptions',
+    'duels_total_90mins': 'Total duels',
+    'duels_won_90mins': 'Duels won',
+    'dribbles_attempts_90mins': 'Attempted dribbles',
+    'dribbles_success_90mins': 'Successful dribbles',
+    'penalty_won_90mins': 'Penalties won',
+    'fouls_drawn_90mins': 'Fouls drawn',
+    'fouls_committed_90mins': 'Fouls committed',
+    'cards_yellow_90mins': 'Yellow cards received',
+    'cards_yellowred_90mins': 'Double Yellow cards received',
+    'cards_red_90mins': 'Red cards received',
+    'penalty_commited_90mins': 'Penalties committed',
+    'saves_90min_I': 'Total saves',
+    'goals_conceded_90mins': 'Goals conceded',
+    'penalty_saved_90mins': 'Penalties saved'
+}
 
 centroids_data = pd.read_csv('dashboard/centroids.csv')[['passing','defending', 'fouling', 'dribbling', 'shooting', 'goalkeeping']]
 player_data = pd.read_csv("dashboard/output.csv")
@@ -613,7 +643,7 @@ tab2_layout = dbc.Container([
                 dcc.Graph(id='compare-radial-chart',style={'display': 'none'})
             ])
         ], width=5, style={
-            'margin-top': '-65%',
+            'margin-top': '-60%',
             'margin-left': '+60%'
         })
     ])
@@ -1372,9 +1402,10 @@ def update_table(player1, playingxi, player2=None, player3=None):
         filter_data = player_data[(player_data['league_id'] == league) &
                                   (player_data['league_season'] == season)]
         p1data = filter_data[filter_data['player_name'] == str(player1)]
+        feats_table = [k for k in feats_table_dict.keys()]
         p1data = p1data[feats_table].iloc[0]
         feat_cols, vals1 = [], []
-        feat_cols = [col for col in p1data.keys()]
+        feat_cols = feats_table #[col for col in p1data.keys()]
         vals1 = [i for i in p1data.values]
         if player2:
             p2data = player_data.loc[player2[0]]
@@ -1398,9 +1429,9 @@ def update_table(player1, playingxi, player2=None, player3=None):
         data_mat.append(['Selected Player',
                          'Alternate Player 1', 
                          'Alternate Player 2',
-                         'Performance'])
+                         'Performance (per 90 mins)'])
         for i in range(len(feat_cols)):
-            row = [vals1[i], vals2[i], vals3[i], feat_cols[i]]
+            row = [vals1[i], vals2[i], vals3[i], feats_table_dict[feat_cols[i]]]
             data_mat.append(row)
         data_df = pd.DataFrame(data=data_mat[1:], columns=data_mat[0])
         data_df.fillna(0, inplace=True)
