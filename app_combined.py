@@ -11,12 +11,18 @@ import copy
 import numpy as np
 from dash import dash_table
 import plotly.figure_factory as ff
-import random
+import timeit
+import csv
+from functools import wraps
+
 
 # Initialize the app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 scatter_plot_width = 1000
 scatter_plot_length = 650
+
+ENABLE_TIMING_DECORATOR = True  # Set this to False if you don't want to store execution times
+
 
 # Common variables for tab2
 # Create an empty table with the required columns
@@ -32,10 +38,11 @@ table_columns = [{'name': 'Selected Player', 'id': 'Selected Player',
 table_data = []
 feats = ['passing', 'defending', 'fouling',
          'dribbling', 'shooting', 'goalkeeping']
+theta_metrics = ['Passing', 'Defending', 'Fouling',
+                    'Dribbling', 'Shooting', 'Goalkeeping']
 
-centroids_data = pd.read_csv('centroids.csv')[['passing',
-                                                         'defending', 'fouling', 'dribbling', 'shooting', 'goalkeeping']]
-# centroids_data['fouling'] = 1- centroids_data['fouling']
+centroids_data = pd.read_csv('dashboard/centroids.csv')[['passing','defending', 'fouling', 'dribbling', 'shooting', 'goalkeeping']]
+player_data = pd.read_csv("dashboard/output.csv")
 
 cluster_labels = {0: 'Goal Machine',
                   1: 'Disciplined Anchor',
@@ -77,8 +84,7 @@ grouped_playstyles = [
 ]
 
 
-player_data = pd.read_csv("output.csv")
-player_data.fillna(-1, inplace=True)
+
 # Extract Player IDs and League Info
 player_options = [{'label': str(row['player_firstname']) + " " + str(row['player_lastname']),
                    'value': int(row['player_id'])}
@@ -115,6 +121,37 @@ xmin, xmax = player_data['x'].min(), player_data['x'].max()
 ymin, ymax = player_data['y'].min(), player_data['y'].max()
 
 
+# Time Util Functions
+
+def timing_decorator(func):
+    if not ENABLE_TIMING_DECORATOR:
+        return func
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = timeit.default_timer()
+        result = func(*args, **kwargs)
+        end_time = timeit.default_timer()
+        execution_time = end_time - start_time
+
+        function_name = func.__name__
+        csv_data = [{'function_name': function_name, 'execution_time': execution_time}]
+        write_to_csv('execution_times.csv', csv_data)
+
+        return result
+    return wrapper
+
+def write_to_csv(filename, data):
+    with open(filename, mode='a', newline='') as csvfile:
+        fieldnames = ['function_name', 'execution_time']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        csvfile.seek(0, 2)
+        if csvfile.tell() == 0:
+            writer.writeheader()
+        for row in data:
+            writer.writerow(row)
+
+
 # Create a scatter plot
 scatter_plot = go.Figure()
 
@@ -136,46 +173,51 @@ scatter_plot.update_layout(width=scatter_plot_width, height=scatter_plot_length,
                            ))
 
 # Create static radial charts
-theta_metrics = ['Passing', 'Defending', 'Fouling',
-                 'Dribbling', 'Shooting', 'Goalkeeping']
-radial_charts = []
-for grouping in grouped_playstyles:
-    for line in grouping:
-        radial_chart_1 = go.Figure()
-        centroid_values = centroids_data.iloc[line[0]].values
-        centroid_values = np.clip(centroid_values, 0, 0.5)
+@timing_decorator
+def create_static_radial_charts():
+    theta_metrics = ['Passing', 'Defending', 'Fouling',
+                    'Dribbling', 'Shooting', 'Goalkeeping']
+    radial_charts = []
+    for grouping in grouped_playstyles:
+        for line in grouping:
+            radial_chart_1 = go.Figure()
+            centroid_values = centroids_data.iloc[line[0]].values
+            centroid_values = np.clip(centroid_values, 0, 0.5)
 
-        hover_text = [f"{theta_metrics[i]}: {round(centroid_values[i], 3)}" for i in range(
-            len(theta_metrics))]
-        radial_chart_1.add_trace(go.Scatterpolar(r=centroid_values,
-                                                 theta=theta_metrics, name=line[1], fill='toself',
-                                                 line=dict(
-                                                     color=color_codes[line[1]]),
-                                                 hovertemplate=hover_text,
-                                                 customdata=list(
-                                                     range(len(theta_metrics))),
-                                                 hoverlabel=dict(namelength=-1)))
+            hover_text = [f"{theta_metrics[i]}: {round(centroid_values[i], 3)}" for i in range(
+                len(theta_metrics))]
+            radial_chart_1.add_trace(go.Scatterpolar(r=centroid_values,
+                                                    theta=theta_metrics, name=line[1], fill='toself',
+                                                    line=dict(
+                                                        color=color_codes[line[1]]),
+                                                    hovertemplate=hover_text,
+                                                    customdata=list(
+                                                        range(len(theta_metrics))),
+                                                    hoverlabel=dict(namelength=-1)))
 
-        radial_chart_1.update_layout(
-            showlegend=False,
-            polar=dict(
-                radialaxis=dict(
-                    # Set a constant range for the radial axis centroids_data.max().max()
-                    range=[0, 0.5],
+            radial_chart_1.update_layout(
+                showlegend=False,
+                polar=dict(
+                    radialaxis=dict(
+                        # Set a constant range for the radial axis centroids_data.max().max()
+                        range=[0, 0.5],
+                    ),
+                    angularaxis=dict()
                 ),
-                angularaxis=dict()
-            ),
-            title=dict(
-                text=line[1],
-                font=dict(size=24, color=color_codes[line[1]]),
-                y=0.9,
-                x=0.5,
-                xanchor="center"
-            ),
-            margin=dict(t=40)
-        )
+                title=dict(
+                    text=line[1],
+                    font=dict(size=24, color=color_codes[line[1]]),
+                    y=0.9,
+                    x=0.5,
+                    xanchor="center"
+                ),
+                margin=dict(t=40)
+            )
 
-        radial_charts.append(radial_chart_1)
+            radial_charts.append(radial_chart_1)
+    return radial_charts
+
+radial_charts = create_static_radial_charts()
 
 # Define the first tab layout
 tab1_layout = dbc.Container(
@@ -673,6 +715,7 @@ def toggle_modal(n1, n2, is_open):
               Input('leagues', 'value'),
               Input('teams', 'value'),
               Input('seasons', 'value'))
+@timing_decorator
 def update_player_options(league, team, season):
     filtered_df = player_data
     if league:
@@ -696,6 +739,7 @@ def update_player_options(league, team, season):
 @app.callback(Output('teams', 'options'),
               Input('leagues', 'value'),
               Input('seasons', 'value'))
+@timing_decorator
 def update_team_options(league, season):
     filtered_df = player_data
     if league:
@@ -719,6 +763,7 @@ def update_team_options(league, season):
      Input('seasons', 'value'),
      Input('players', 'value')]
 )
+@timing_decorator
 def update_radial_chart(league, team, season, player):
 
     filtered_df = player_data
@@ -780,6 +825,7 @@ def update_radial_chart(league, team, season, player):
      Input('seasons', 'value'),
      Input('players', 'value')]
 )
+@timing_decorator
 def update_scatter_plot(league, team, season, player):
 
     selected_data = copy.deepcopy(player_data)
