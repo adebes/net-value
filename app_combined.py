@@ -20,21 +20,20 @@ scatter_plot_length = 650
 
 # Common variables for tab2
 # Create an empty table with the required columns
-table_columns = [{'name': 'Performance', 'id': 'Performance'},
-                 {'name': 'Selected Player', 'id': 'Selected Player',
+player_positions = ['Goalkeeper', 'Defender-1', 'Defender-2', 'Defender-3', 'Defender-4',
+                    'Midfielder-1', 'Midfielder-2', 'Midfielder-3', 'Attacker-1', 'Attacker-2', 'Attacker-3']
+table_columns = [{'name': 'Selected Player', 'id': 'Selected Player',
                      'presentation': 'dropdown'},
                  {'name': 'Alternate Player 1', 'id': 'Alternate Player 1',
                      'presentation': 'dropdown'},
-                 {'name': 'Alternate Player 2', 'id': 'Alternate Player 2', 'presentation': 'dropdown'}]
+                 {'name': 'Alternate Player 2', 'id': 'Alternate Player 2', 'presentation': 'dropdown'},
+                 {'name': 'Performance', 'id': 'Performance'}]
+#table_columns = []
 table_data = []
 feats = ['passing', 'defending', 'fouling',
          'dribbling', 'shooting', 'goalkeeping']
 
-player_positions = ['Goalkeeper', 'Defender-1', 'Defender-2', 'Defender-3', 'Defender-4',
-                    'Midfielder-1', 'Midfielder-2', 'Midfielder-3', 'Attacker-1', 'Attacker-2', 'Attacker-3']
-
-
-centroids_data = pd.read_csv('dashboard/centroids.csv')[['passing',
+centroids_data = pd.read_csv('centroids.csv')[['passing',
                                                          'defending', 'fouling', 'dribbling', 'shooting', 'goalkeeping']]
 # centroids_data['fouling'] = 1- centroids_data['fouling']
 
@@ -78,13 +77,13 @@ grouped_playstyles = [
 ]
 
 
-player_data = pd.read_csv("dashboard/output.csv")
+player_data = pd.read_csv("output.csv")
 player_data.fillna(-1, inplace=True)
 # Extract Player IDs and League Info
 player_options = [{'label': str(row['player_firstname']) + " " + str(row['player_lastname']),
                    'value': int(row['player_id'])}
                   for index, row in player_data.iterrows()]
-league_options = [{'label': str(row['league_name'] + " - " + str(row['league_country'])),
+league_options = [{'label': str(row['league_name']) + " - " + str(row['league_country']),
                    'value': int(row['league_id'])}
                   for index, row in player_data.drop_duplicates(subset=['league_name', 'league_id']).iterrows()]
 season_options = [{'label': str(row['league_season']),
@@ -94,7 +93,23 @@ team_options = [{'label': str(row['team_name']),
                  'value': int(row['team_id'])}
                 for index, row in player_data.drop_duplicates(subset=['team_name', 'team_id']).iterrows()]
 
-# player_options = [{'label': '', 'value': ''}]
+gk_filter = player_data[player_data['games_position']=='Goalkeeper']
+def_filter = player_data[player_data['games_position']=='Defender']
+mid_filter = player_data[player_data['games_position']=='Midfielder']
+atk_filter = player_data[player_data['games_position']=='Attacker']
+
+gk_options = [{'label': str(row['player_name']) + " - " + str(row['league_name']) + " - " + str(row['league_season']),
+            'value': index}
+        for index, row in gk_filter.drop_duplicates(subset=['league_name', 'league_season','player_name']).iterrows()]
+def_options = [{'label': str(row['player_name']) + " - " + str(row['league_name']) + " - " + str(row['league_season']),
+            'value': index}
+        for index, row in def_filter.drop_duplicates(subset=['league_name', 'league_season','player_name']).iterrows()]
+mid_options = [{'label': str(row['player_name']) + " - " + str(row['league_name']) + " - " + str(row['league_season']),
+            'value': index}
+        for index, row in mid_filter.drop_duplicates(subset=['league_name', 'league_season','player_name']).iterrows()]
+atk_options = [{'label': str(row['player_name']) + " - " + str(row['league_name']) + " - " + str(row['league_season']),
+            'value': index}
+        for index, row in atk_filter.drop_duplicates(subset=['league_name', 'league_season','player_name']).iterrows()]
 
 xmin, xmax = player_data['x'].min(), player_data['x'].max()
 ymin, ymax = player_data['y'].min(), player_data['y'].max()
@@ -483,8 +498,9 @@ tab2_layout = dbc.Container([
                                          searchable=True,
                                          clearable=True,
                                          placeholder='Selected Player',
-                                         style={'width': '97%'})
-                        ], style={'width': '25%', 'display': 'inline-block'}),
+                                         optionHeight=75,
+                                         style={'width': '90%'})
+                        ], style={'width': '25%', 'display': 'inline-block', 'margin-right': '0px'}),
                         html.Div([
                             html.Label('Alternative 1', style={
                                 'color': 'Black', 'font-weight': 'bold'}),
@@ -493,8 +509,9 @@ tab2_layout = dbc.Container([
                                          searchable=True,  # adds auto fill search option
                                          clearable=True,  # adds clear button to deselect players
                                          placeholder='Alternate 1',
-                                         style={'width': '97%'})
-                        ], style={'width': '25%', 'display': 'inline-block'}),
+                                         optionHeight=75,
+                                         style={'width': '90%'})
+                        ], style={'width': '25%', 'display': 'inline-block', 'margin-left': '-25px'}),
                         html.Div([
                             html.Label('Alternative 2', style={
                                 'color': 'Black', 'font-weight': 'bold'}),
@@ -503,45 +520,47 @@ tab2_layout = dbc.Container([
                                          searchable=True,
                                          clearable=True,
                                          placeholder='Alternate 2',
-                                         style={'width': '97%'})
-                        ], style={'width': '25%', 'display': 'inline-block'})
+                                         optionHeight=75,
+                                         style={'width': '90%'})
+                        ], style={'width': '25%', 'display': 'inline-block', 'margin-left': '-25px'})
                     ], width=8),
                 ], style={
-                    'height': '50px',
+                    'height': '80px',
                     'position': 'relative',
                     'display': 'flex',
                     'margin-top': '+01%',
-                    'margin-left': '+10%'
+                    'margin-left': '+0%'
                 },
                 )
-            ], style={'height': '50px', 'align-items': 'center'}),
+            ], style={'height': '100px', 'align-items': 'center'}),
             dbc.Row([
-                # dbc.Col(dcc.Graph(id='stats-table'))
                 html.Div([
                     dash_table.DataTable(id='stats-table',
-                                         columns=table_columns,
+                                         columns=[], #table_columns,
                                          data=[], editable=True,
                                          style_cell={
-                                             'minWidth': '200px', 'maxWidth': '200px'}
+                                             'minWidth': '200px', 'maxWidth': '250px'}
                                          )  # table_data)
                 ], style={'width': '25%', 'display': 'inline-block'}
                 )
             ], style={
-                'height': '100px',
+                'width': '85%',
                 'position': 'relative',
                 'display': 'flex',
-                'margin-top': '+03%',
-                'margin-left': '-5%'
+                'margin-top': '+02%',
+                'margin-left': '-0%'
             },
             )
 
         ]),
         dbc.Col([
-            html.Div(id='compare-radial', className='text-center'),
-            dcc.Graph(id='compare-radial-chart')
+            html.Div([
+                html.Div(id='compare-radial', className='text-center'),
+                dcc.Graph(id='compare-radial-chart',style={'display': 'none'})
+            ])
         ], width=6, style={
-            'margin-top': '-10%',
-            'margin-left': '+60%'
+            'margin-top': '-20%',
+            'margin-left': '+55%'
         })
     ])
 ], fluid=True)
@@ -716,9 +735,9 @@ def update_radial_chart(league, team, season, player):
         filtered_df = filtered_df[(filtered_df['player_id']).isin([
             int(x) for x in player])]
 
-    print(league, season, player)
-    print(filtered_df[["league_id", "league_name",
-          "league_season", "player_id"]])
+    #print(league, season, player)
+    #print(filtered_df[["league_id", "league_name",
+    #      "league_season", "player_id"]])
 
     radial_data = filtered_df[['passing',
                                'defending', 'fouling', 'dribbling', 'shooting', 'goalkeeping']].mean()
@@ -783,7 +802,7 @@ def update_scatter_plot(league, team, season, player):
         filtered_df.index.values), 'cluster'] = -1
 
     scatter_plot = go.Figure()
-    print(selected_data.cluster.value_counts())
+    #print(selected_data.cluster.value_counts())
 
     for cluster, label in list(cluster_labels.items())[::-1]:
         ratio = 0.1
@@ -824,6 +843,7 @@ def update_scatter_plot(league, team, season, player):
 
 # Common variables for tab2
 # Create an empty table with the required columns
+"""
 table_columns = [{'name': 'Performance', 'id': 'Performance'},
                  {'name': 'Selected Player', 'id': 'Selected Player',
                      'presentation': 'dropdown'},
@@ -836,7 +856,7 @@ feats = ['passing', 'defending', 'fouling',
 
 player_positions = ['Goalkeeper', 'Defender-1', 'Defender-2', 'Defender-3', 'Defender-4',
                     'Midfielder-1', 'Midfielder-2', 'Midfielder-3', 'Attacker-1', 'Attacker-2', 'Attacker-3']
-
+"""
 
 # call backs for tab2 upper part
 
@@ -875,7 +895,7 @@ def set_season_options(selected_league):
 selected_players = []
 
 
-def fetch_player_image(player_name, player_dict):
+def fetch_player_image(player_name, player_dict, player_card):
     temp_dict = copy.deepcopy(player_dict)
     if player_name is None:
         return html.Div()
@@ -894,9 +914,9 @@ def fetch_player_image(player_name, player_dict):
     temp_dict.pop('league', None)
     # print(temp_dict, flush=True)
 
-    return (html.Div(
+    return (html.Div(title=str(player_card),
 
-        style={
+                     style={
             'display': 'inline-block',
             'background-image': f'url({player_photo_url})',
             'background-size': 'cover',
@@ -904,15 +924,15 @@ def fetch_player_image(player_name, player_dict):
             'border-radius': '50%',
             'width': '50px',
             'height': '50px',
-        },
+            },
     ),
-        html.Div(player_name, title=str(temp_dict), style={
+        html.Div(player_name, style={
             'font-size': '12px', 'color': '#ffff', 'font-weight': 'bold', 'background-color': '#FF5733',
             'padding': '5px',
             'border-radius': '5px'}))
 
+# global goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3
 
-global goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3
 
 already_selected_players = []
 
@@ -965,51 +985,76 @@ def update_selected_players(n_clicks_add, n_clicks_clear, n_clicks_remove,
             'player_name': player
         }
         if player_dict not in selected_players:
+            # filter player_data using league_id, season_id, player_name
+            df_filtered = player_data[(player_data['league_id'] == league) & (
+                player_data['league_season'] == season) & (player_data['player_name'] == player)]
+            player_cluster = df_filtered['cluster'].values[0]
+            player_team = df_filtered['team_name'].values[0]
+            season_str = str(season)
+            league_name = df_filtered['league_name'].values[0]
+            cluster_name = cluster_labels[player_cluster]
+
+            # format above strings to be displayed in the player card like player_team(season_str)\nleague_name\ncluster_name
+            player_card = player_team + \
+                ' (' + season_str + ')' + '\n' + \
+                league_name + '\n' + cluster_name
+            #print(player_card)
             selected_players.append(player_dict)
     if player not in already_selected_players:
         if position == 'Goalkeeper':
             already_selected_players.append(player)
-            goalkeeper_circle_1 = fetch_player_image(player, player_dict)
+            goalkeeper_circle_1 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Defender-1':
             already_selected_players.append(player)
-            defender_circles_1 = fetch_player_image(player, player_dict)
+            defender_circles_1 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Defender-2':
             already_selected_players.append(player)
-            defender_circles_2 = fetch_player_image(player, player_dict)
+            defender_circles_2 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Defender-3':
             already_selected_players.append(player)
-            defender_circles_3 = fetch_player_image(player, player_dict)
+            defender_circles_3 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Defender-4':
             already_selected_players.append(player)
-            defender_circles_4 = fetch_player_image(player, player_dict)
+            defender_circles_4 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Midfielder-1':
             already_selected_players.append(player)
-            midfielder_circles_1 = fetch_player_image(player, player_dict)
+            midfielder_circles_1 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Midfielder-2':
             already_selected_players.append(player)
-            midfielder_circles_2 = fetch_player_image(player, player_dict)
+            midfielder_circles_2 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Midfielder-3':
             already_selected_players.append(player)
-            midfielder_circles_3 = fetch_player_image(player, player_dict)
+            midfielder_circles_3 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Attacker-1':
             already_selected_players.append(player)
-            attacker_circle_1 = fetch_player_image(player, player_dict)
+            attacker_circle_1 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Attacker-2':
             already_selected_players.append(player)
-            attacker_circle_2 = fetch_player_image(player, player_dict)
+            attacker_circle_2 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
         elif position == 'Attacker-3':
             already_selected_players.append(player)
-            attacker_circle_3 = fetch_player_image(player, player_dict)
+            attacker_circle_3 = fetch_player_image(
+                player, player_dict, player_card)
             return [goalkeeper_circle_1, defender_circles_1, defender_circles_2, defender_circles_3, defender_circles_4, midfielder_circles_1, midfielder_circles_2, midfielder_circles_3, attacker_circle_1, attacker_circle_2, attacker_circle_3, selected_players]
 
     if button_id == 'clear-players-button':
@@ -1025,7 +1070,8 @@ def update_selected_players(n_clicks_add, n_clicks_clear, n_clicks_remove,
 
 
 @app.callback(
-    Output('compare-radial-chart', 'figure'),
+    [Output('compare-radial-chart', 'figure'),
+     Output('compare-radial-chart', 'style')],
     [Input('current-dropdown', 'value'),
      Input('player-store', 'data'),
      Input('suggestion1-dropdown', 'value'),
@@ -1043,6 +1089,8 @@ def update_radial_chart(player1, playingxi, player2=None, player3=None):
     fig = go.Figure(layout=layout)
 
     if player1:
+        c = ['#FF4136','#0074D9','#FF851B']
+        #"""
         for p in playingxi:
             if (player1 == p['player_name']):
                 # reqpos = p['position']
@@ -1050,35 +1098,39 @@ def update_radial_chart(player1, playingxi, player2=None, player3=None):
                 season = p['season']
         filter_data = player_data[(player_data['league_id'] == league) &
                                   (player_data['league_season'] == season)]
+        #"""
         # return dynamic_chart
         p1data = filter_data[filter_data['player_name'] == str(player1)]
         p1data = p1data[feats].iloc[0]
         feat_cols = [col for col in p1data.keys()]
         vals1 = [i for i in p1data.values]
-        trace1 = go.Scatterpolar(
-            r=vals1, theta=feat_cols, fill='toself', fillcolor='#FF6347', name=str(player1))
+        trace1 = go.Scatterpolar(r=vals1, theta=feat_cols, fill='toself', 
+                                 fillcolor=c[0], name=str(player1),
+                                 line=dict(color=c[0]),opacity=0.3)
         if player2:
-            p2data = filter_data[filter_data['player_name'] == str(player2[0])]
-            p2data = p2data[feats].iloc[0]
-            vals2 = [i for i in p2data.values]
-            trace2 = go.Scatterpolar(
-                r=vals2, theta=feat_cols, fill='toself', fillcolor='#00CED1', name=str(player2[0]))
+            p2data = player_data.loc[player2[0]]
+            vals2 = [i for i in p2data[feat_cols].values]
+            trace2 = go.Scatterpolar(r=vals2, theta=feat_cols, fill='toself', 
+                                     fillcolor=c[1], name=p2data['player_name'],
+                                     line=dict(color=c[1]),opacity=0.3)
         else:
             p2data = [0*i for i in p1data]
             vals2 = p2data
-            trace2 = go.Scatterpolar(
-                r=vals2, theta=feat_cols, fill='toself', fillcolor='#00CED1', name=str(player2))
+            trace2 = go.Scatterpolar(r=vals2, theta=feat_cols, fill='toself', 
+                                     fillcolor=c[1], name=str(player2),
+                                     line=dict(color=c[1]),opacity=0.3)
         if player3:
-            p3data = filter_data[filter_data['player_name'] == str(player3[0])]
-            p3data = p3data[feats].iloc[0]
-            vals3 = [i for i in p3data.values]
-            trace3 = go.Scatterpolar(
-                r=vals3, theta=feat_cols, fill='toself', fillcolor='#FFD700', name=str(player3[0]))
+            p3data = player_data.loc[player3[0]]
+            vals3 = [i for i in p3data[feat_cols].values]
+            trace3 = go.Scatterpolar(r=vals3, theta=feat_cols, fill='toself', 
+                                     fillcolor=c[2], name=p3data['player_name'],
+                                     line=dict(color=c[2]),opacity=0.3)
         else:
             p3data = [0*i for i in p1data]
             vals3 = p3data
-            trace3 = go.Scatterpolar(
-                r=vals3, theta=feat_cols, fill='toself', fillcolor='#FFD700', name=str(player3))
+            trace3 = go.Scatterpolar(r=vals3, theta=feat_cols, fill='toself', 
+                                     fillcolor=c[2], name=str(player3),
+                                     line=dict(color=c[2]),opacity=0.3)
 
         fig.add_trace(trace1)
         fig.add_trace(trace2)
@@ -1088,12 +1140,13 @@ def update_radial_chart(player1, playingxi, player2=None, player3=None):
             yanchor='top',
             y=1.25,
             xanchor='left',
-            x=0.25
+            x=0.05
         )
         )
+        #print(fig.layout())
 
-        return fig
-    return fig
+        return fig, {'display': 'block'}
+    return fig, {'display': 'none'}
 
 # callback to update option for current player
 
@@ -1128,6 +1181,28 @@ def update_suggest_dropdown1(main_player, playingxi, select1=None, select2=None)
                     reqpos = reqpos[:-2]
                 league = p['league']
                 season = p['season']
+        if(reqpos[0] == "G"):
+            return gk_options
+        elif(reqpos[0] == "D"):
+            return def_options
+        elif(reqpos[0] == "M"):
+            return mid_options
+        elif(reqpos[0]=="A"):
+            return atk_options
+        """
+        filter_data = player_data[player_data['games_position']==reqpos]
+        p1data = filter_data[(filter_data['league_id'] == league) &
+                                   (filter_data['player_name'] == main_player) &
+                                   (filter_data['league_season'] == season)]
+        filter_data = filter_data.drop(p1data.index[0],axis='index')
+        if select2 is not None:
+            filter_data = filter_data.drop(int(select2[0]),axis='index')
+        
+        suggest_options = [{'label': str(row['player_name']) + " - " + str(row['league_name']) + " - " + str(row['league_season']),
+                 'value': index}
+                for index, row in filter_data.drop_duplicates(subset=['league_name', 'league_season','player_name']).iterrows()]
+        return suggest_options
+
         filter_data = player_data[(player_data['league_id'] == league) &
                                   (player_data['league_season'] == season) &
                                   (player_data['games_position'] == reqpos)]
@@ -1138,6 +1213,7 @@ def update_suggest_dropdown1(main_player, playingxi, select1=None, select2=None)
         req_options = [{'label': str(i), 'value': str(i)}
                        for i in reqdata if str(i) not in remove_list]
         return req_options
+        """
     return []
 
 # callback to update option for atl 1
@@ -1159,7 +1235,27 @@ def update_suggest_dropdown2(main_player, playingxi, select1=None, select2=None)
                     reqpos = reqpos[:-2]
                 league = p['league']
                 season = p['season']
-                # break
+        if(reqpos[0] == "G"):
+            return gk_options
+        elif(reqpos[0] == "D"):
+            return def_options
+        elif(reqpos[0] == "M"):
+            return mid_options
+        elif(reqpos[0]=="A"):
+            return atk_options
+        """
+        filter_data = player_data[player_data['games_position']==reqpos]
+        p1data = filter_data[(filter_data['league_id'] == league) &
+                                   (filter_data['player_name'] == main_player) &
+                                   (filter_data['league_season'] == season)]
+        filter_data = filter_data.drop(p1data.index[0],axis='index')
+        if select1 is not None:
+            filter_data = filter_data.drop(int(select1[0]),axis='index')        
+        suggest_options = [{'label': str(row['player_name']) + " - " + str(row['league_name']) + " - " + str(row['league_season']),
+                 'value': index}
+                for index, row in filter_data.drop_duplicates(subset=['league_name', 'league_season','player_name']).iterrows()]
+        return suggest_options
+    
         filter_data = player_data[(player_data['league_id'] == league) &
                                   (player_data['league_season'] == season) &
                                   (player_data['games_position'] == reqpos)]
@@ -1170,6 +1266,7 @@ def update_suggest_dropdown2(main_player, playingxi, select1=None, select2=None)
         req_options = [{'label': str(i), 'value': str(i)}
                        for i in reqdata if str(i) not in remove_list]
         return req_options
+        """
     return []
 
 # callback to limit selections to one player
@@ -1192,7 +1289,8 @@ def limit_selections(values1, values2):
 
 
 @app.callback(
-    Output('stats-table', 'data'),
+    [Output('stats-table', 'data'),
+     Output('stats-table', 'columns')],
     [Input('current-dropdown', 'value'),
      Input('player-store', 'data'),
      Input('suggestion1-dropdown', 'value'),
@@ -1213,36 +1311,37 @@ def update_table(player1, playingxi, player2=None, player3=None):
         feat_cols = [col for col in p1data.keys()]
         vals1 = [i for i in p1data.values]
         if player2:
-            p2data = filter_data[filter_data['player_name'] == str(player2[0])]
-            p2data = p2data[feats].iloc[0]
+            p2data = player_data.loc[player2[0]]
+            #p2data = filter_data[filter_data['player_name'] == str(player2[0])]
+            #p2data = p2data[feats].iloc[0]
             vals2 = []
-            vals2 = [i for i in p2data.values]
+            vals2 = [i for i in p2data[feat_cols].values]
         else:
             vals2 = []
-            # p2data
             vals2 = [0*i for i in p1data]
-            # vals2 = p2data
         if player3:
-            p3data = filter_data[filter_data['player_name'] == str(player3[0])]
-            p3data = p3data[feats].iloc[0]
+            p3data = player_data.loc[player3[0]]
+            #p3data = filter_data[filter_data['player_name'] == str(player3[0])]
+            #p3data = p3data[feats].iloc[0]
             vals3 = []
-            vals3 = [i for i in p3data.values]
+            vals3 = [i for i in p3data[feat_cols].values]
         else:
-            # p3data =
             vals3 = []
             vals3 = [0*i for i in p1data]
-            # vals3 = p3data
         data_mat = []
-        data_mat.append(['Performance', 'Selected Player',
-                        'Alternate Player 1', 'Alternate Player 2'])
+        data_mat.append(['Selected Player',
+                         'Alternate Player 1', 
+                         'Alternate Player 2',
+                         'Performance'])
         for i in range(len(feat_cols)):
-            row = [feat_cols[i], vals1[i], vals2[i], vals3[i]]
+            row = [vals1[i], vals2[i], vals3[i], feat_cols[i]]
             data_mat.append(row)
         data_df = pd.DataFrame(data=data_mat[1:], columns=data_mat[0])
         data_df.fillna(0, inplace=True)
 
         data = data_df.round(3).to_dict('records')
-        return data
+        return data, table_columns
+    return [], []
 
 
 if __name__ == '__main__':
