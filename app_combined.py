@@ -56,7 +56,7 @@ feats_table = ['passes_90min_I', 'saves_90min_I',
 """
 feats_table_dict = {
     'passes_90min_I': 'Total passes',
-    'passes_accuracy_90mins': 'Pass accuracy',
+    # 'passes_accuracy_90mins': 'Pass accuracy',
     'passes_key_90mins': 'Key passes',
     'goals_assists_90mins': 'Assists',
     'shots_90mins': 'Total shots',
@@ -90,7 +90,7 @@ cluster_labels = {0: 'Goal Machine',
                   1: 'Disciplined Anchor',
                   2: 'Precision Agitator',
                   3: 'Unruly Artisan',
-                  4: 'Role Specialist',
+                  4: 'Adaptable Ace',
                   5: 'Dual Catalyst',
                   6: 'Pass Maestro',
                   7: 'Steadfast Guardian',
@@ -101,7 +101,7 @@ color_codes = {
     'Disciplined Anchor': '#0074D9',  # Blue
     'Precision Agitator': '#FF851B',  # Orange
     'Unruly Artisan': '#FFDC00',     # Yellow
-    'Role Specialist': '#2ECC40',    # Green
+    'Adaptable Ace': '#2ECC40',    # Green
     'Dual Catalyst': '#B10DC9',      # Purple
     'Pass Maestro': '#39CCCC',       # Turquoise
     'Steadfast Guardian': '#7d4705',  # Brown
@@ -116,7 +116,7 @@ grouped_playstyles = [
     ],
     [
         (1, 'Disciplined Anchor'),
-        (4, 'Role Specialist'),
+        (4, 'Adaptable Ace'),
         (6, 'Pass Maestro')
     ],
     [
@@ -651,19 +651,57 @@ tab2_layout = dbc.Container([
 
 
 # Define the modal window content
+import dash_html_components as html
+
+modal_body = html.Div([
+    html.H5("Net Value Dashboard User Guide"),
+    html.Br(),
+    html.H6("Tab: PLAY STYLE"),
+    html.P("Net Value is an innovative visualization tool designed to help understand the evolution of play styles for individual soccer players."),
+    html.P("TLDR : Filter League, Season and Player (multiple selections supported) to update the scatter plot and radar plot. Scatter plot has hover, zoom, download, auto scaling and selection capabilities. View benchmark radar plots to view the centroid attributes."),
+    html.Br(),
+    html.P("This tab displays the results of the clustering analysis. More than 123K league-season-player combinations were clustered in 8 groups, namely, Goal Machine, Disciplined Anchor, Precision Agitator, Unruly Artisan, Adaptable Ace, Dual Catalyst, Pass Maestro and Steadfast Guardian. The interpretations for these clusters are listed below. The user can modify the League, Season and Player filters to get a selection of their choice. These filters support multiple selection. The scatter plot and the corresponding radar plot will be updated accordingly. In any particular selection, the visible clusters in the scatter plot can be selected/ deselected by clicking on the cluster labels on top of the scatter plot. Hovering over a particular point on the scatter plot shows details about that particular data point. The scatter plot can be zoomed in and out, auto-scaled, selected (box and lasso select) and downloaded as a png file using the tools bar at the top right of the plot. In the bottom section of this tab, users can see the radar plots of the cluster averages."),
+    html.Br(),
+    html.P("The eight clusters can be interpreted as below :"),
+    html.Ol([
+        html.Li("Goal Machine - Excellent in attack with high goal contributions"),
+        html.Li("Disciplined Anchor - Below average performances but good at game discipline"),
+        html.Li("Precision Agitator - Good shooting, excellent dribbling, committing and drawing a lot of fouls"),
+        html.Li("Unruly Artisan - Jack of all trades, but poor in game discipline"),
+        html.Li("Adaptable Ace - Extremely versatile performances"),
+        html.Li("Dual Catalyst - Good attacking and midfield contributions"),
+        html.Li("Pass Maestro - Good passers but moderate performance level"),
+        html.Li("Steadfast Guardian - Good at defence but not versatile")
+    ]),
+    html.Br(),
+    html.P("Radar Plots : The radar plots display aggregated scores in six distinct player traits : Passing, Dribbling, Shooting, Defending, Fouling, Goalkeeping. These plots update according to the current filter selection. The individual features in each of these traits are listed below."),
+    html.Ol([
+        html.Li("Passing - Total passes, key passes, pass accuracy and assists"),
+        html.Li("Dribbling - Dribbling attempts, successes, penalties won and fouls drawn"),
+        html.Li("Shooting - Goals scored, penalties scored, total shots and shots on target"),
+        html.Li("Defending - Total duels, duels won, tackles, blocks and interceptions"),
+        html.Li("Fouling - Fouls committed, yellow cards, red cards, double yellow and penalties committed"),
+        html.Li("Goalkeeping - Total saves, goals conceded, penalties saved")
+    ]),
+    html.Br(),
+    html.H6("Tab: DREAM TEAM"),
+    html.P("TLDR: Select position to be filled in the team and filter League and Season to update the list of players and then choose a player to be selected into the team. Find all selected players in the player dropdown at the bottom of the page. Select one or two more league-season-player combinations to compare players and observe updated radar plots and features."),
+    html.Br(),
+    html.P("This tab allows users to build their own team by selecting players in each of the positions. The chosen format is 4-3-3, which means 4 Defenders, 3 Midfielders and 3 Attackers. These positions are their actual playing position in that particular league and season. To select players, select position from the Position dropdown and then select League and Season. Once League and Season are selected, the players list in the Player dropdown is updated and then the required player can be selected. After selection, observe the player being populated spatially in the team layout on the right. Other players can be selected similarly. When hovering over a player, you can view their team affiliation and the performance cluster they were assigned to during that particular league and season."),
+    html.Br(),
+    html.P("In the bottom section of this tab, one of the selected players can be compared to other players in order to find suitable player replacements in the user’s team. The tool allows users to compare to two other players at once. The corresponding radar plot shows the individual radar plots superimposed on each other. The individual radar plots can be selected/deselected by clicking on the player name above the plot. The list of features, for every 90 mins of gameplay, are also listed which can be used for deeper comparisons.")
+])
+
 modal = dbc.Modal(
     [
         dbc.ModalHeader("README"),
-        dbc.ModalBody(
-            """
-            This is a simple Dash app that demonstrates how to create a pop-up README window. To use this app, click the 'Info' button to display the instructions.
-            """
-        ),
+        modal_body,
         dbc.ModalFooter(
             dbc.Button("Close", id="close", className="ml-auto")
         ),
     ],
     id="modal",
+    size='xl'
 )
 
 # Define the app layout
@@ -1079,6 +1117,7 @@ def update_selected_players(n_clicks_add, n_clicks_clear, n_clicks_remove,
             # filter player_data using league_id, season_id, player_name
             df_filtered = player_data[(player_data['league_id'] == league) & (
                 player_data['league_season'] == season) & (player_data['player_name'] == player)]
+            # print(df_filtered)
             player_cluster = df_filtered['cluster'].values[0]
             player_team = df_filtered['team_name'].values[0]
             season_str = str(season)
