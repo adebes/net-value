@@ -15,4 +15,4 @@ INSTALLATION
 
 1. Install Python and the following Python packages: Jupyter Notebooks, pandas, matplotlib, numpy, scipy, seaborn, sklearn, IPython, json, requests, ratelimit, dash, dash_bootstrap_components, plotly, copy, timeit, csv, functools
 2. Open the terminal and navigate to the directory with the Net Value package.
-3. Run "python app_combined.py" in the terminal to locally host the Net Value dashboard.
+3. Run "python app_combined_final.py" in the terminal to locally host the Net Value dashboard.
