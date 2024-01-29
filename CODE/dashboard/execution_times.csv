@@ -1,0 +1,17 @@
+function_name,execution_time
+create_static_radial_charts,0.10071751999930711
+update_radial_chart,0.3731590499992308
+update_team_options,0.9743065959992236
+update_scatter_plot,1.5593100400001276
+update_player_options,7.3264983169974585
+set_season_options,0.0013047540014667902
+update_selected_players,0.00030685800084029324
+set_player_options,1.186999725177884e-06
+update_suggest_dropdown1,1.0229996405541897e-06
+update_suggest_dropdown2,9.299983503296971e-07
+update_table,1.1570009519346058e-06
+update_radial_chart,0.0078059279985609464
+update_radial_chart,0.03575285799888661
+update_team_options,0.6876441819986212
+update_scatter_plot,1.4983166179990803
+update_player_options,7.35544795000169
