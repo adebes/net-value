@@ -86,9 +86,9 @@ feats_table_dict = {
     'penalty_saved_90mins': 'Penalties saved'
 }
 
-centroids_data = pd.read_csv('centroids.csv')[
+centroids_data = pd.read_csv('dashboard/centroids.csv')[
     ['passing', 'defending', 'fouling', 'dribbling', 'shooting', 'goalkeeping']]
-player_data = pd.read_csv("output.csv")
+player_data = pd.read_csv("dashboard/output.csv")
 
 cluster_labels = {0: 'Goal Machine',
                   1: 'Disciplined Anchor',
